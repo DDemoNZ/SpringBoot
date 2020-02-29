@@ -2,9 +2,11 @@ package mate.academy.boot.helloboot.controller;
 
 import mate.academy.boot.helloboot.entity.Book;
 import mate.academy.boot.helloboot.entity.dto.request.BookRequestDto;
+import mate.academy.boot.helloboot.entity.dto.response.BookResponseDto;
 import mate.academy.boot.helloboot.service.BookService;
 
 import java.util.List;
+import java.util.stream.Collectors;
 import javax.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,23 +23,28 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/book")
 public class BookController {
 
-    @Autowired
-    private BookService bookService;
+    private final BookService bookService;
+
+    public BookController(BookService bookService) {
+        this.bookService = bookService;
+    }
 
     @GetMapping
-    public List<Book> allBooks() {
-        return bookService.findAll();
+    public List<BookResponseDto> allBooks() {
+        return bookService.findAll().stream()
+                .map(this::responseDtoFromEntity)
+                .collect(Collectors.toList());
     }
 
     @GetMapping("/{id}")
-    public Book findById(@PathVariable Long id) {
-        return bookService.findById(id);
+    public BookResponseDto findById(@PathVariable Long id) {
+        return responseDtoFromEntity(bookService.findById(id));
     }
 
     @PostMapping
-    public void addBook(@RequestBody @Valid BookRequestDto bookRequestDto) {
+    public BookResponseDto addBook(@RequestBody @Valid BookRequestDto bookRequestDto) {
         Book book = entityFromRequestDto(bookRequestDto);
-        bookService.save(book);
+        return responseDtoFromEntity(bookService.save(book));
     }
 
 
@@ -47,10 +54,20 @@ public class BookController {
     }
 
     @PutMapping("{id}")
-    public Book updateBook(@PathVariable Long id,
-                           @RequestBody @Valid BookRequestDto bookRequestDto) {
+    public BookResponseDto updateBook(@PathVariable Long id,
+                                      @RequestBody @Valid BookRequestDto bookRequestDto) {
         Book book = entityFromRequestDto(bookRequestDto);
-        return bookService.update(id, book);
+        return responseDtoFromEntity(bookService.update(id, book));
+    }
+
+    private BookResponseDto responseDtoFromEntity(Book book) {
+        BookResponseDto bookResponseDto = new BookResponseDto();
+        bookResponseDto.setId(book.getId());
+        bookResponseDto.setYear(book.getYear());
+        bookResponseDto.setTitle(book.getTitle());
+        bookResponseDto.setPrice(book.getPrice());
+        bookResponseDto.setDescription(book.getDescription());
+        return bookResponseDto;
     }
 
     private Book entityFromRequestDto(BookRequestDto bookRequestDto) {
